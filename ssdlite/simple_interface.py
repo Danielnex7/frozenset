@@ -2,31 +2,20 @@ import numpy as np
 import torch
 import matplotlib.image as img
 import matplotlib.pyplot as plt
-import matplotlib
 import os
-import json
 import torchvision.transforms.functional as F
 
-from tqdm import tqdm
 from PIL import Image
 from torchvision.utils import draw_bounding_boxes
 from torchvision.io import read_image
 from torchvision.ops import box_convert
 from torchinfo import summary
 from torchvision.io.image import read_image
-from torchvision.models.detection import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights, fasterrcnn_resnet50_fpn
+from torchvision.models.detection import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
 from torchvision.models.mobilenetv3 import mobilenet_v3_large, MobileNet_V3_Large_Weights
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.utils import draw_bounding_boxes
 from torchvision.transforms.functional import to_pil_image, pil_to_tensor
 from torchvision import transforms
 from torchvision.transforms._presets import ObjectDetection
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
-from torch.nn.functional import smooth_l1_loss, cross_entropy
-
-# from tkinter import Tk
-# from tkinter.filedialog import askopenfilename
 
 # set relative path
 ds_path = 'VOC2028/'
@@ -45,9 +34,6 @@ m_3class = ssdlite320_mobilenet_v3_large( num_classes=3,
 # change head
 model_loaded.head = m_3class.head
 
-# Tk().withdraw() # Added so Tk window doesn't appear on opening the dialog
-# filePath = askopenfilename()
-
 # ordinary path to best model
 best_path = 'models/' + 'SSDLiteMobNetFreezBackbone_3class_best(49ep).pt'
 
@@ -59,7 +45,9 @@ if not os.path.exists(model_path):
     print('Wrong path. The best default model will be loaded:', best_path)
     model_path = best_path
 
-checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+checkpoint = torch.load(model_path, map_location=torch.device(DEVICE))
 model_loaded.load_state_dict(checkpoint['model_state_dict'])
 epoch = checkpoint['epoch']
 loss = checkpoint['loss']
@@ -100,8 +88,6 @@ while flag:
     
     #constructing image with boxes
     box = draw_bounding_boxes(pil_to_tensor(img), # for original image case
-                          #(tensor_img1*256).to(dtype=torch.uint8), # for normalized image case (not fully identical)
-                          boxes=prediction['boxes'],
                           labels=labels,
                           colors=colors,
                           width=3)
