@@ -1,20 +1,11 @@
-import numpy as np
 import torch
-import matplotlib.image as img
-import matplotlib.pyplot as plt
 import os
-import torchvision.transforms.functional as F
 
 from PIL import Image
 from torchvision.utils import draw_bounding_boxes
-from torchvision.io import read_image
-from torchvision.ops import box_convert
-from torchinfo import summary
-from torchvision.io.image import read_image
-from torchvision.models.detection import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
-from torchvision.models.mobilenetv3 import mobilenet_v3_large, MobileNet_V3_Large_Weights
+from numpy.random import randint
+from torchvision.models.detection import ssdlite320_mobilenet_v3_large
 from torchvision.transforms.functional import to_pil_image, pil_to_tensor
-from torchvision import transforms
 from torchvision.transforms._presets import ObjectDetection
 
 # set relative path
@@ -23,9 +14,8 @@ ds_path = 'VOC2028/'
 # create model with head for 3 classes(0 - background, 1 - head, 2 - helmet)
 #base model 
 model_loaded = ssdlite320_mobilenet_v3_large( weights='DEFAULT',
-                                      weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V1,
-                                      score_tresh=0.1
-                                     )
+                                             score_tresh=0.1
+                                             )
 # model with needed head
 m_3class = ssdlite320_mobilenet_v3_large( num_classes=3,
                                           weights_backbone=None,
@@ -58,7 +48,7 @@ print(f'Boxes loss: {round(loss["bbox_loss"].item(),4)}, class loss: {round(loss
 
 #preparation to model inference
 convert_to_tensor = ObjectDetection()
-model_loaded.score_thresh = 0.4
+model_loaded.score_thresh = 0.6
 labels_dict={'1': 'head',
              '2': 'helmet'}
 colors_dict={'1': 'red',
@@ -74,7 +64,7 @@ while flag:
         break
     if not os.path.exists(img_path):
         lst = os.listdir('short_test/')
-        img_path = 'short_test/' + lst[np.random.randint(0, len(lst))]
+        img_path = 'short_test/' + lst[randint(0, len(lst))]
         print('Wrong path. The random image from standard folder will be loaded:', img_path)
 
     img = Image.open(img_path)
@@ -88,9 +78,10 @@ while flag:
     
     #constructing image with boxes
     box = draw_bounding_boxes(pil_to_tensor(img), # for original image case
-                          labels=labels,
-                          colors=colors,
-                          width=3)
+                              boxes=prediction['boxes'],
+                              labels=labels,
+                              colors=colors,
+                              width=3)
     
     im = to_pil_image(box.detach())
     im.show()
