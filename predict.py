@@ -1,5 +1,7 @@
 import torch
 import os
+import subprocess
+import shutil
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
@@ -101,14 +103,33 @@ def choose_image():
     
 
 # make prediction depending on model (don't optimized for yolo 1-3 for flexibility)
-def make_prediction(img_path, model, num_model):
+def make_prediction(img_path, model, num_model, confidence=0.25):
     # choose prediction method for different models
     if num_model == 1:
         return model.predict(source=img_path, save=False, save_txt=False)
+    
     elif num_model == 2:
-        return model.predict(source=img_path, save=False, save_txt=False) # ??? YOLOv7 ???
+        # construct call string
+        call_str = 'python yolo7/detect.py --weights models/yolov7.pt \
+                    --device cpu --conf ' + str(confidence) + \
+                    ' --source ' + img_path
+        # call in shell
+        subprocess.call(call_str, shell=True)
+        # get file name
+        file_name = os.path.split(img_path)[1]
+        # open image to return
+        img = Image.open(os.path.join('runs', 'detect', 'exp', file_name))
+        img.load()
+        plt.imshow(img)
+        plt.show()
+        os.remove('traced_model.pt')
+        shutil.rmtree('runs')
+        print('img in make_prediction', img)
+        return img
+        
     elif num_model == 3:
         return model.predict(source=img_path, save=False, save_txt=False)
+    
     elif num_model == 4:
         convert_to_tensor = ObjectDetection()
         img = Image.open(img_path)
@@ -126,10 +147,7 @@ def draw_image(result, img_path, num_model):
         plt.show()
     
     elif num_model == 2: # ??? YOLOv7 ???
-        color_img1 = cv2.cvtColor(result[0].plot(), cv2.COLOR_BGR2RGB)
-        plt.imshow(color_img1)
-        plt.title('Model 2 - YOLOv7')
-        plt.show() 
+        pass
     
     elif num_model == 3:
         color_img1 = cv2.cvtColor(result[0].plot(), cv2.COLOR_BGR2RGB)
