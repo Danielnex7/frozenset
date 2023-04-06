@@ -53,11 +53,11 @@ def load_yolo7():
 
 def load_ssdlite():
     # base pretrained model as base template
-    model = ssdlite320_mobilenet_v3_large( weights='DEFAULT', score_tresh=0.1)
+    model = ssdlite320_mobilenet_v3_large( weights='DEFAULT', score_thresh=0.1)
     # model with needed head
     m_3class = ssdlite320_mobilenet_v3_large( num_classes=3,
                                              weights_backbone=None,
-                                             score_tresh=0.1,
+                                             score_thresh=0.1,
                                              )
     # change head for 3 classes: 0 - background (required), 1 - head, 2 - helmet
     model.head = m_3class.head
@@ -69,8 +69,8 @@ def load_ssdlite():
     checkpoint = torch.load(path_to_model, map_location=DEVICE)#torch.device(DEVICE))
     # load state dictionary 
     model.load_state_dict(checkpoint['model_state_dict'])
-    # set confidence for prediction
-    model.score_tresh = 0.4
+    # # set confidence for prediction # don't work properly
+    model.score_thresh = 0.4
     # transfer pretrained model to eval state
     model.eval()
     return model
@@ -102,11 +102,24 @@ def choose_image():
                 print('Incorrect input. Try again!')
     
 
+# ask confidence 
+def ask_conf():
+    conf_str = input('Input confidence (between 0.0 and 1.0): ')
+    try:
+        conf = float(conf_str)
+        if not (0.0 <= conf <= 1.0):
+            raise ValueError
+        return conf
+    except ValueError:
+        print('Incorrect input. Default confidence 0.5 is applied')
+        return 0.5
+
+
 # make prediction depending on model (don't optimized for yolo 1-3 for flexibility)
 def make_prediction(img_path, model, num_model, confidence=0.25):
     # choose prediction method for different models
     if num_model == 1:
-        return model.predict(source=img_path, save=False, save_txt=False)
+        return model.predict(source=img_path, save=False, save_txt=False, conf=confidence)
     
     elif num_model == 2:
         # construct call string
@@ -120,17 +133,19 @@ def make_prediction(img_path, model, num_model, confidence=0.25):
         # open image to return
         img = Image.open(os.path.join('runs', 'detect', 'exp', file_name))
         img.load()
+        
         plt.imshow(img)
         plt.show()
         os.remove('traced_model.pt')
         shutil.rmtree('runs')
-        print('img in make_prediction', img)
         return img
         
     elif num_model == 3:
-        return model.predict(source=img_path, save=False, save_txt=False)
+        return model.predict(source=img_path, save=False, save_txt=False, conf=confidence)
     
     elif num_model == 4:
+        model.score_thresh = confidence
+        print(f'{model.score_thresh=}')
         convert_to_tensor = ObjectDetection()
         img = Image.open(img_path)
         tensor_img = convert_to_tensor(img)
@@ -146,7 +161,7 @@ def draw_image(result, img_path, num_model):
         plt.title('Model 1 - YOLOv8m')
         plt.show()
     
-    elif num_model == 2: # ??? YOLOv7 ???
+    elif num_model == 2: # YOLOv7 draw image is realized in make prediction
         pass
     
     elif num_model == 3:
@@ -202,14 +217,18 @@ def main():
         # Choose image and make prediction
         while img_flag:
             img_path = choose_image()
-            print(img_path)
+            
             # exit if 0 chosen
             if img_path == 0:
                 return
             elif img_path == 1: # to choose another model
                 break
+            
+            # asking confidence level for each prediction
+            conf = ask_conf()
+
             # make prediction
-            result = make_prediction(img_path, model, num_model)
+            result = make_prediction(img_path, model, num_model, conf)
             # draw image
             draw_image(result, img_path, num_model)
 
