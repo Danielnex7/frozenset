@@ -19,7 +19,7 @@ def model_chooser():
     # Show choose
     print('Choose model:')
     print('1 - yolo8m')
-    print('2 - yolo7n')
+    print('2 - yolo7')
     print('3 - yolo5s')
     print('4 - ssdlite')
     print('0 - for exit')
@@ -43,7 +43,7 @@ def load_model(num_model):
     elif num_model == 2:
         return load_yolo7()
     elif num_model == 3:
-        return YOLO(os.path.join('models', 'yolov5s.pt'))
+        return YOLO(os.path.join('models', 'yolov5su.pt'))
     elif num_model == 4:
         return load_ssdlite()
 
@@ -226,6 +226,12 @@ def main():
             
             # asking confidence level for each prediction
             conf = ask_conf()
+
+            # remove unnecessary created by yolo dir and file (bugfix)
+            if os.path.exists('traced_model.pt'):
+                os.remove('traced_model.pt')
+            if os.path.exists('runs'):
+                shutil.rmtree('runs')
 
             # make prediction
             result = make_prediction(img_path, model, num_model, conf)
